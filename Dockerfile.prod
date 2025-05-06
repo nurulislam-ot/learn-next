@@ -1,0 +1,27 @@
+# Development Stage
+FROM node:lts-alpine3.20 AS development
+WORKDIR /application
+COPY package*.json ./
+RUN npm ci
+COPY . .
+EXPOSE 3000
+CMD ["npm", "run", "dev"]
+
+# Builder Stage
+FROM node:lts-alpine3.20 AS builder
+WORKDIR /application
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Production Stage I
+FROM node:lts-alpine3.20 AS production
+WORKDIR /application
+# Copy the built artifacts from the builder stage
+COPY --from=builder /application/.next/standalone ./
+COPY --from=builder /application/.next/static ./.next/static
+# Set the environment variables (if needed)
+ENV NODE_ENV=production
+EXPOSE 3000
+CMD ["node", "server.js"]
